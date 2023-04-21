@@ -1,33 +1,45 @@
 pipeline {
 
   environment {
-    registry = "10.95.65.195:5000/justme/myweb"
+    dockerimagename = "bravinwasike/react-app"
+    dockerImage = ""
   }
 
   agent any
 
   stages {
 
-    stage('Cloning Git') {
+    stage('Checkout Source') {
       steps {
-        git 'https://github.com/justmeandopensource/playjenkins.git'
+        git 'https://github.com/Bravinsimiyu/jenkins-kubernetes-deployment.git'
       }
     }
 
-    stage('Building image') {
+    stage('Build image') {
       steps{
         script {
-          docker.build registry + ":$BUILD_NUMBER"
+          dockerImage = docker.build dockerimagename
         }
       }
     }
 
-    stage('Deploy Image') {
+    stage('Pushing Image') {
+      environment {
+               registryCredential = 'dockerhub-credentials'
+           }
       steps{
         script {
-          docker.withRegistry( '' ) {
-            dockerImage.push()
+          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+            dockerImage.push("latest")
           }
+        }
+      }
+    }
+
+    stage('Deploying React.js container to Kubernetes') {
+      steps {
+        script {
+          kubernetesDeploy(configs: "deployment.yaml", "service.yaml")
         }
       }
     }
